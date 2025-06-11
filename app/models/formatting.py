@@ -1,5 +1,5 @@
 from marshmallow import validate, fields
-from extensions import db, ma
+from app.extensions import db, ma
 import enum
 
 class FormattingType(enum.Enum):

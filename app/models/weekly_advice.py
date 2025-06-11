@@ -1,5 +1,5 @@
 from marshmallow import validate
-from extensions import db, ma
+from app.extensions import db, ma
 
 class WeeklyAdvice(db.Model):
     """

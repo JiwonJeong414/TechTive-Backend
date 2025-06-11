@@ -1,6 +1,6 @@
 from marshmallow import validate
-from extensions import db, ma
-from models.formatting import FormattingSchema
+from app.extensions import db, ma
+from app.models.formatting import FormattingSchema
 
 class Note(db.Model):
     """
