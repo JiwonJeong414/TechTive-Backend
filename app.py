@@ -2,7 +2,7 @@
 from flask import Flask, jsonify
 from extensions import db, ma
 import config
-from user import User
+from models.user import User
 
 app = Flask(__name__)
 app.config.from_object(config)
