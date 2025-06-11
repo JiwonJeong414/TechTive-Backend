@@ -1,4 +1,4 @@
-from marshmallow import validate
+from marshmallow import validate, fields
 from extensions import db, ma
 import enum
 
@@ -32,6 +32,6 @@ class FormattingSchema(ma.SQLAlchemySchema):
 
     id = ma.auto_field(dump_only=True)
     note_id = ma.auto_field(dump_only=True)
-    type = ma.EnumField(FormattingType, required=True)
+    type = fields.Enum(FormattingType, required=True)
     location = ma.auto_field(required=True, validate=validate.Range(min=0))
     length = ma.auto_field(required=True, validate=validate.Range(min=1))
