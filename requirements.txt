@@ -9,3 +9,4 @@ flask-marshmallow==1.1.0
 marshmallow-sqlalchemy==1.4.2
 pandas==2.2.1
 Flask-Migrate==4.0.5
+firebase-admin==6.4.0

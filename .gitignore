@@ -82,3 +82,7 @@ dmypy.json
 # PostgreSQL
 *.dump
 *.backup 
+
+# Firebase service account key
+config/serviceAccountKey.json
+

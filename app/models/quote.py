@@ -1,7 +1,5 @@
 from marshmallow import validate
 from app.extensions import db, ma
-import csv
-import os
 
 class Quote(db.Model):
     """

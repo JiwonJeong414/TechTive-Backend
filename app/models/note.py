@@ -42,4 +42,4 @@ class NoteSchema(ma.SQLAlchemySchema):
     sadness_value = ma.auto_field(dump_only=True)
     surprise_value = ma.auto_field(dump_only=True)
     created_at = ma.auto_field(dump_only=True)
-    formattings = ma.Nested(FormattingSchema, many=True, exclude=("note_id",)) # enable relationship and exclude note_id to prevent circular ref.
+    formattings = ma.Nested(FormattingSchema, many=True, exclude=("note_id",), required=False)
