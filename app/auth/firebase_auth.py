@@ -8,6 +8,7 @@ import os
 import logging
 import requests
 from requests.exceptions import RequestException
+from app.config import config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +20,8 @@ def init_firebase():
         firebase_admin.get_app()
         logger.info("Firebase Admin SDK already initialized")
     except ValueError:
-        # Get the path from environment variable or use a default path
-        service_account_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', 'config/serviceAccountKey.json')
+        # Get the path from config
+        service_account_path = config.FIREBASE_SERVICE_ACCOUNT_PATH
         if not os.path.exists(service_account_path):
             raise FileNotFoundError(
                 f"Firebase service account key file not found at {service_account_path}. "

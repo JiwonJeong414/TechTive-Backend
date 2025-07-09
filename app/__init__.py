@@ -7,7 +7,10 @@ from app.auth.firebase_auth import init_firebase
 def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
-    app.config["CELERY"] = {"broker_url": "redis://localhost:6379", "result_backend": "redis://localhost:6379"}
+    app.config["CELERY"] = {
+        "broker_url": config.CELERY_BROKER_URL,
+        "result_backend": config.CELERY_RESULT_BACKEND
+    }
     
     # Initialize extensions
     db.init_app(app)
