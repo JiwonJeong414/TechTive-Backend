@@ -74,3 +74,28 @@ def check_advice_eligibility():
         "eligible_for_advice": should_generate,
         "user_id": request.user.id
     }), 200
+
+@advice_bp.route("/memory/", methods=["GET"])
+@firebase_auth_required
+def get_user_memories():
+    """Get all memories for the authenticated user"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    from app.models.user_memory import UserMemory, UserMemorySchema
+    
+    memory_query = UserMemory.query.filter_by(user_id=request.user.id)\
+        .order_by(UserMemory.created_at.desc())
+    
+    memory_pagination = memory_query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    memory_schema = UserMemorySchema()
+    
+    return jsonify({
+        "memories": [memory_schema.dump(memory) for memory in memory_pagination.items],
+        "total": memory_pagination.total,
+        "pages": memory_pagination.pages,
+        "current_page": page
+    }), 200

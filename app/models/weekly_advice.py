@@ -3,7 +3,7 @@ from app.extensions import db, ma
 
 class WeeklyAdvice(db.Model):
     """
-    Advice for user based on their emotional patterns and notes
+    Advice for user based on their emotional patterns, recent notes, and memories
     """
     __tablename__ = "weekly_advices"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -12,21 +12,19 @@ class WeeklyAdvice(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
     
     # Track what triggered this advice
-    trigger_type = db.Column(db.String(50), nullable=False, default="note_count")  # "note_count", "emotional_pattern", "manual"
+    trigger_type = db.Column(db.String(50), nullable=False, default="note_count")
+    
+    # Context used for advice generation
+    memories_used_count = db.Column(db.Integer, default=0)
+    recent_notes_used_count = db.Column(db.Integer, default=0)
+    dominant_emotion = db.Column(db.String(20), nullable=True)
+    
+    # For backwards compatibility
     notes_analyzed_count = db.Column(db.Integer, default=0)
-    
-    # Emotional context when advice was generated
-    avg_joy = db.Column(db.Float, default=0.0)
-    avg_sadness = db.Column(db.Float, default=0.0)
-    avg_anger = db.Column(db.Float, default=0.0)
-    avg_fear = db.Column(db.Float, default=0.0)
-    avg_neutral = db.Column(db.Float, default=0.0)
-    
-    # For backwards compatibility - can be removed in future migration
-    of_week = db.Column(db.DateTime(timezone=True), nullable=True)
 
     def __repr__(self):
         return f"<Advice {self.id} for User {self.user_id} - {self.trigger_type}>"
+
     
 class WeeklyAdviceSchema(ma.SQLAlchemySchema):
     class Meta:
@@ -39,8 +37,3 @@ class WeeklyAdviceSchema(ma.SQLAlchemySchema):
     created_at = ma.DateTime(dump_only=True)
     trigger_type = ma.auto_field(dump_only=True)
     notes_analyzed_count = ma.auto_field(dump_only=True)
-    avg_joy = ma.auto_field(dump_only=True)
-    avg_sadness = ma.auto_field(dump_only=True)
-    avg_anger = ma.auto_field(dump_only=True)
-    avg_fear = ma.auto_field(dump_only=True)
-    avg_neutral = ma.auto_field(dump_only=True)

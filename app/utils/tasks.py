@@ -1,11 +1,10 @@
 import gc
-import os
-from time import sleep
 from celery import shared_task
 from app.models.note import Note
 from app.extensions import db
 from app.config import config
-from app.utils.api_utils import call_hf_emotion_api, generate_and_save_advice, should_generate_advice
+from app.utils.api_utils import call_hf_emotion_api, generate_and_save_advice
+from app.utils.memory_manager import MemoryManager
 
 # Supported emotions to prevent API changes from breaking the model
 SUPPORTED_EMOTIONS = {
@@ -112,16 +111,25 @@ def send_note(self, note_id, content):
 @shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def generate_advice_task(self, user_id):
     """
-    Generate advice for user asynchronously
+    Generate advice for user asynchronously with memory system
     """
     print(f"Starting advice generation task for user {user_id} (task_id: {self.request.id})")
-    try:
+    try:        
+        # Create memory first if needed
+        if MemoryManager.should_create_memory(user_id):
+            memory = MemoryManager.create_and_save_memory(user_id)
+            if memory:
+                print(f"Created memory {memory.id} before generating advice")
+        
+        # Generate advice using new memory-based system
         advice = generate_and_save_advice(user_id)
         
         return {
             "user_id": user_id,
             "advice_id": advice.id,
             "content": advice.content,
+            "memories_used": advice.memories_used_count,
+            "recent_notes_used": advice.recent_notes_used_count,
             "status": "success"
         }
             
@@ -129,7 +137,7 @@ def generate_advice_task(self, user_id):
         error_msg = str(e)
         print(f"Advice generation failed for user {user_id}: {error_msg}")
         
-        # Check if we should retry (API issues, network problems)
+        # Retry logic for recoverable errors
         error_str = error_msg.lower()
         if ("api" in error_str or 
             "network" in error_str or 
@@ -145,27 +153,6 @@ def generate_advice_task(self, user_id):
             "status": "error",
             "error_message": error_msg
         }
-
-@shared_task
-def check_all_users_for_advice():
-    """
-    Periodic task to check all users and generate advice when needed
-    """
-    from app.models.user import User
-    
-    users = User.query.all()
-    generated_count = 0
-    
-    for user in users:
-        if should_generate_advice(user.id):
-            advice = generate_and_save_advice(user.id)
-            if advice:
-                generated_count += 1
-    
-    return {
-        "total_users_checked": len(users),
-        "advice_generated": generated_count
-    }
 
 @shared_task
 def health_check():
