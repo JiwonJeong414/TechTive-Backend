@@ -32,6 +32,65 @@ def create_note():
     
     return jsonify(note_schema.dump(note)), 201
 
+
+@notes_bp.route("/note/<int:note_id>/", methods=["PUT"])
+@firebase_auth_required
+def update_note(note_id):
+    """
+    Endpoint for updating a note
+    """
+    # Find the note by ID
+    note = Note.query.get(note_id)
+    
+    if not note:
+        return jsonify({"error": "Note not found"}), 404
+    
+    # Check if the user owns this note
+    if note.user_id != request.user.id:
+        return jsonify({"error": "Unauthorized to update this note"}), 403
+    
+    # Validate and load the update data
+    data = request.get_json()
+    if not data or 'content' not in data:
+        return jsonify({"error": "Content field is required"}), 400
+    
+    # Update the note content
+    note.content = data['content']
+    
+    # Save the changes
+    db.session.commit()
+    
+    # Start new emotion analysis task asynchronously
+    if note.content:
+        emotion_task = send_note.delay(note.id, note.content)
+        print(f"Started emotion analysis task for update with ID: {emotion_task.id}")
+    
+    return jsonify(note_schema.dump(note)), 200
+
+
+@notes_bp.route("/note/<int:note_id>/", methods=["DELETE"])
+@firebase_auth_required
+def delete_note(note_id):
+    """
+    Endpoint for deleting a note
+    """
+    # Find the note by ID
+    note = Note.query.get(note_id)
+    
+    if not note:
+        return jsonify({"error": "Note not found"}), 404
+    
+    # Check if the user owns this note
+    if note.user_id != request.user.id:
+        return jsonify({"error": "Unauthorized to delete this note"}), 403
+    
+    # Delete the note (cascade will handle related formattings)
+    db.session.delete(note)
+    db.session.commit()
+    
+    return jsonify({"message": "Note deleted successfully"}), 200
+
+
 @notes_bp.route("/task/<task_id>/", methods=["GET"])
 @firebase_auth_required
 def get_task_status(task_id):
@@ -58,4 +117,3 @@ def get_task_status(task_id):
             "task_id": task_id,
             "status": "pending"
         }), 202
-
