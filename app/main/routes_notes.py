@@ -33,6 +33,49 @@ def create_note():
     return jsonify(note_schema.dump(note)), 201
 
 
+@notes_bp.route("/note/<int:note_id>/", methods=["GET"])
+@firebase_auth_required
+def get_note(note_id):
+    """
+    Endpoint for getting an individual note with sentiment analysis
+    """
+    # Find the note by ID
+    note = Note.query.get(note_id)
+    
+    if not note:
+        return jsonify({"error": "Note not found"}), 404
+    
+    # Check if the user owns this note
+    if note.user_id != request.user.id:
+        return jsonify({"error": "Unauthorized to access this note"}), 403
+    
+    # Return the note with sentiment analysis
+    return jsonify(note_schema.dump(note)), 200
+
+
+@notes_bp.route("/note/", methods=["GET"])
+@firebase_auth_required
+def get_user_notes():
+    """
+    Endpoint for getting all notes for the authenticated user (without sentiment analysis)
+    """
+    # Get all notes for the authenticated user
+    notes = Note.query.filter_by(user_id=request.user.id).order_by(Note.created_at).all()
+    
+    # Create a simplified schema for listing (without sentiment analysis)
+    notes_list = []
+    for note in notes:
+        note_data = {
+            "id": note.id,
+            "content": note.content,
+            "created_at": note.created_at.isoformat() if note.created_at else None
+        }
+        
+        notes_list.append(note_data)
+    
+    return jsonify({"notes": notes_list}), 200
+
+
 @notes_bp.route("/note/<int:note_id>/", methods=["PUT"])
 @firebase_auth_required
 def update_note(note_id):
