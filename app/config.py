@@ -1,8 +1,7 @@
 import os
-from celery.schedules import crontab
+from dotenv import load_dotenv
 
-# Get the base directory of the current file
-basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv()
 
 class Config:
     # Firebase Configuration
@@ -20,5 +19,7 @@ class Config:
     HUGGING_FACE_API_TOKEN = os.environ.get("HUGGING_FACE_API_TOKEN")
     HUGGING_FACE_MODEL_URL = os.environ.get("HUGGING_FACE_MODEL_URL", "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base")
 
+    # OPEN AI API
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 config = Config()

@@ -2,11 +2,13 @@ from flask import Blueprint, jsonify, request
 from app.models.note import Note, NoteSchema
 from app.extensions import db
 from app.auth.firebase_auth import firebase_auth_required
-from app.utils.tasks import send_note
+from app.utils.tasks import send_note, generate_advice_task
+from app.utils.api_utils import should_generate_advice
 from celery.result import AsyncResult
 
 notes_bp = Blueprint('notes', __name__, url_prefix='/api')
 note_schema = NoteSchema()
+
 
 @notes_bp.route("/note/", methods=["POST"])
 @firebase_auth_required
@@ -29,6 +31,11 @@ def create_note():
     if note.content:
         emotion_task = send_note.delay(note.id, note.content)
         print(f"Started emotion analysis task with ID: {emotion_task.id}")
+    
+    # Check if advice should be generated
+    if should_generate_advice(request.user.id):
+        advice_task = generate_advice_task.delay(request.user.id)
+        print(f"Started advice generation task with ID: {advice_task.id}")
     
     return jsonify(note_schema.dump(note)), 201
 
