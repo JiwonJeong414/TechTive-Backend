@@ -4,7 +4,33 @@ from io import BytesIO
 from werkzeug.utils import secure_filename
 from botocore.exceptions import ClientError
 from app.config import config
-from app.extensions import s3_client
+
+def get_s3_client():
+    """Get the S3 client from extensions, with fallback initialization"""
+    from app.extensions import s3_client
+    
+    if s3_client is None:
+        print("WARNING: S3 client is None, attempting to initialize...")
+        import boto3
+        
+        # Check if all required config values are present
+        if not all([config.AWS_ACCESS_KEY_ID, config.AWS_SECRET_ACCESS_KEY, config.S3_BUCKET_NAME]):
+            print("ERROR: Missing required AWS configuration")
+            return None
+        
+        try:
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=config.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY,
+                region_name=config.AWS_REGION
+            )
+            return s3_client
+        except Exception as e:
+            print(f"ERROR: Failed to initialize S3 client as fallback: {e}")
+            return None
+    
+    return s3_client
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -33,10 +59,10 @@ def resize_image(image_file, max_size=(800, 800)):
 def upload_to_s3(file_obj, filename, content_type='image/jpeg'):
     """Upload file to S3 bucket"""
     try:
-        # Debug: Check if s3_client is initialized
-        if s3_client is None:
-            print("ERROR: s3_client is None - S3 client not initialized")
-            print("Make sure init_s3_client(app) was called in your app factory")
+        # Get S3 client with fallback
+        client = get_s3_client()
+        if client is None:
+            print("ERROR: S3 client is not available")
             return None
         
         # Debug: Check if config values are set
@@ -48,20 +74,31 @@ def upload_to_s3(file_obj, filename, content_type='image/jpeg'):
             print(f"ERROR: AWS_REGION is not set. Current value: {config.AWS_REGION}")
             return None
         
-        print(f"DEBUG: Attempting to upload {filename} to bucket {config.S3_BUCKET_NAME} in region {config.AWS_REGION}")
-        
-        s3_client.upload_fileobj(
-            file_obj,
-            config.S3_BUCKET_NAME,
-            filename,
-            ExtraArgs={
-                'ContentType': content_type,
-                'ACL': 'public-read'  # Make file publicly accessible
-            }
-        )
+        # Try upload without ACL first (for buckets with ACLs disabled)
+        try:
+            client.upload_fileobj(
+                file_obj,
+                config.S3_BUCKET_NAME,
+                filename,
+                ExtraArgs={
+                    'ContentType': content_type
+                }
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'AccessControlListNotSupported':
+                print("INFO: Bucket has ACLs disabled, uploading without ACL")
+                client.upload_fileobj(
+                    file_obj,
+                    config.S3_BUCKET_NAME,
+                    filename,
+                    ExtraArgs={
+                        'ContentType': content_type
+                    }
+                )
+            else:
+                raise  # Re-raise if it's a different error
         
         s3_url = f"https://{config.S3_BUCKET_NAME}.s3.{config.AWS_REGION}.amazonaws.com/{filename}"
-        print(f"DEBUG: Successfully uploaded to {s3_url}")
         return s3_url
         
     except ClientError as e:
@@ -73,13 +110,13 @@ def upload_to_s3(file_obj, filename, content_type='image/jpeg'):
         print(f"UNEXPECTED ERROR uploading to S3: {type(e).__name__}: {e}")
         return None
 
-
 def delete_from_s3(filename):
     """Delete file from S3 bucket"""
     try:
-        # Debug: Check if s3_client is initialized
-        if s3_client is None:
-            print("ERROR: s3_client is None - S3 client not initialized")
+        # Get S3 client with fallback
+        client = get_s3_client()
+        if client is None:
+            print("ERROR: S3 client is not available")
             return False
         
         # Debug: Check if config values are set
@@ -87,11 +124,8 @@ def delete_from_s3(filename):
             print(f"ERROR: S3_BUCKET_NAME is not set. Current value: {config.S3_BUCKET_NAME}")
             return False
         
-        print(f"DEBUG: Attempting to delete {filename} from bucket {config.S3_BUCKET_NAME}")
+        client.delete_object(Bucket=config.S3_BUCKET_NAME, Key=filename)
         
-        s3_client.delete_object(Bucket=config.S3_BUCKET_NAME, Key=filename)
-        
-        print(f"DEBUG: Successfully deleted {filename}")
         return True
         
     except ClientError as e:

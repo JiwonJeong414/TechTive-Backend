@@ -20,8 +20,10 @@ def create_app():
     # Initialize Celery
     celery_init_app(app)
     
-    # Initialize S3
-    init_s3_client(app)
+    # Initialize S3 and check if successful
+    s3_success = init_s3_client(app)
+    if not s3_success:
+        print("WARNING: S3 client initialization failed. Profile picture uploads will not work.")
     
     # Initialize Firebase
     init_firebase()
