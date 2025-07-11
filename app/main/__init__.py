@@ -9,10 +9,12 @@ from flask import Blueprint
 from .routes_quotes import quotes_bp
 from .routes_notes import notes_bp
 from .routes_advice import advice_bp
+from .routes_user import user_bp
 
 # List of all blueprints that can be registered with the app
 blueprints = [
     quotes_bp,
     notes_bp,
-    advice_bp
+    advice_bp,
+    user_bp
 ] 

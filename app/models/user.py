@@ -13,6 +13,10 @@ class User(db.Model):
         "WeeklyAdvice", backref="user", lazy=True, cascade="all, delete-orphan"
     )
 
+    # Profile picture fields
+    profile_picture_url = db.Column(db.String(512), nullable=True)
+    profile_picture_filename = db.Column(db.String(256), nullable=True)
+
     def __repr__(self):
         """
         String representation of the User instance
@@ -32,3 +36,5 @@ class UserSchema(ma.SQLAlchemySchema):
 
     id = ma.auto_field()
     firebase_uid = ma.auto_field(required=True, validate=validate.Length(min=1))
+    profile_picture_url = ma.auto_field()
+    profile_picture_filename = ma.auto_field()

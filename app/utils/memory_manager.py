@@ -1,11 +1,7 @@
-import json
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
 from app.models.note import Note
 from app.models.user_memory import UserMemory
-from app.models.weekly_advice import WeeklyAdvice
 from app.extensions import db
-from app.config import config
 from app.utils.api_utils import create_memory_summary
 
 class MemoryManager:
